@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgentCut - AI Director</title>
+  <title>AgentCut - Multi-Agent AI Video Production</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236366f1'/><text x='50' y='68' font-size='50' font-weight='bold' fill='white' text-anchor='middle' font-family='system-ui'>AC</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -12,66 +15,404 @@
       theme: {
         extend: {
           colors: {
-            brand: { 50: '#eff6ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' },
-          }
+            brand: { 50: '#eff6ff', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' },
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
         }
       }
     }
   </script>
   <style>
+    /* ---- Base ---- */
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      background: #050508;
+      color: #c8cdd5;
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ---- Animated mesh gradient background ---- */
+    .mesh-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .mesh-bg::before {
+      content: '';
+      position: absolute;
+      width: 120vw;
+      height: 120vh;
+      top: -20%;
+      left: -10%;
+      background:
+        radial-gradient(ellipse 600px 500px at 20% 15%, rgba(99,102,241,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 500px 400px at 75% 20%, rgba(139,92,246,0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 400px 350px at 50% 70%, rgba(59,130,246,0.06) 0%, transparent 70%);
+      animation: mesh-drift 20s ease-in-out infinite alternate;
+    }
+    .mesh-bg::after {
+      content: '';
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      background:
+        radial-gradient(ellipse 350px 350px at 80% 60%, rgba(99,102,241,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 300px 300px at 30% 80%, rgba(168,85,247,0.05) 0%, transparent 70%);
+      animation: mesh-drift2 25s ease-in-out infinite alternate;
+    }
+    @keyframes mesh-drift {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(30px, -20px) scale(1.03); }
+      100% { transform: translate(-20px, 15px) scale(0.98); }
+    }
+    @keyframes mesh-drift2 {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      100% { transform: translate(-25px, 20px) rotate(3deg); }
+    }
+
+    /* ---- Noise overlay for texture ---- */
+    .noise-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 256px 256px;
+    }
+
+    /* ---- Glass morphism ---- */
+    .glass {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .glass-elevated {
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    /* ---- Glow effects ---- */
+    .glow {
+      box-shadow:
+        0 0 20px rgba(99,102,241,0.15),
+        0 0 60px rgba(99,102,241,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      border-color: rgba(99,102,241,0.3) !important;
+    }
+
+    /* ---- Animations ---- */
     @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
-    @keyframes slide-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
     .slide-in { animation: slide-in 0.3s ease-out; }
-    body { background: #0a0a0f; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
-    .glass { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(12px); }
-    .glow { box-shadow: 0 0 30px rgba(99,102,241,0.15); }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    .fade-up-d1 { animation-delay: 0.1s; }
+    .fade-up-d2 { animation-delay: 0.2s; }
+    .fade-up-d3 { animation-delay: 0.35s; }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    @keyframes glow-pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes card-activate {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+
+    /* ---- Progress bar ---- */
+    #progress-bar {
+      background: linear-gradient(90deg, #6366f1, #818cf8, #a78bfa, #818cf8, #6366f1);
+      background-size: 200% 100%;
+      animation: shimmer 3s linear infinite;
+      box-shadow: 0 0 16px rgba(99,102,241,0.5), 0 0 4px rgba(99,102,241,0.8);
+      position: relative;
+    }
+    #progress-bar::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: -2px;
+      bottom: -2px;
+      width: 6px;
+      border-radius: 99px;
+      background: #c4b5fd;
+      box-shadow: 0 0 8px rgba(196,181,253,0.8);
+      animation: glow-pulse 1.5s ease-in-out infinite;
+    }
+
+    /* ---- Agent pipeline connector lines ---- */
+    .pipeline-grid {
+      position: relative;
+    }
+    .pipeline-connector {
+      position: absolute;
+      top: 50%;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(99,102,241,0.15), rgba(99,102,241,0.3), rgba(99,102,241,0.15));
+      transform: translateY(-50%);
+      z-index: 0;
+    }
+    .pipeline-connector::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: -3px;
+      width: 8px;
+      height: 8px;
+      border-top: 2px solid rgba(99,102,241,0.3);
+      border-right: 2px solid rgba(99,102,241,0.3);
+      transform: rotate(45deg);
+    }
+
+    /* ---- Agent cards ---- */
+    .agent-card {
+      position: relative;
+      z-index: 1;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .agent-card.glow {
+      animation: card-activate 0.4s ease-out;
+    }
+    .agent-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      font-size: 20px;
+      position: relative;
+    }
+    .agent-icon::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .agent-card.glow .agent-icon::after {
+      opacity: 1;
+      box-shadow: 0 0 20px currentColor;
+    }
+
+    /* Agent-specific icon colors */
+    .icon-director { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.2); }
+    .icon-script { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+    .icon-visual { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+    .icon-voice { background: rgba(234,179,8,0.15); color: #facc15; border: 1px solid rgba(234,179,8,0.2); }
+    .icon-music { background: rgba(236,72,153,0.15); color: #f472b6; border: 1px solid rgba(236,72,153,0.2); }
+    .icon-editor { background: rgba(249,115,22,0.15); color: #fb923c; border: 1px solid rgba(249,115,22,0.2); }
+
+    /* ---- Log scrollbar ---- */
+    #event-log::-webkit-scrollbar { width: 4px; }
+    #event-log::-webkit-scrollbar-track { background: transparent; }
+    #event-log::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+    /* ---- Button hover glow ---- */
+    .btn-primary {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent 50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .btn-primary:hover::before { opacity: 1; }
+    .btn-primary:hover {
+      box-shadow: 0 0 24px rgba(99,102,241,0.35), 0 4px 12px rgba(0,0,0,0.3);
+      transform: translateY(-1px);
+    }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+    .btn-primary:disabled::before { display: none; }
+
+    /* ---- Template chips ---- */
+    .template-chip {
+      transition: all 0.2s ease;
+    }
+    .template-chip:hover {
+      background: rgba(99,102,241,0.08);
+      border-color: rgba(99,102,241,0.3);
+      color: #a5b4fc;
+      transform: translateY(-1px);
+    }
+
+    /* ---- Select styling ---- */
+    select option {
+      background: #13131a;
+      color: #c8cdd5;
+    }
+
+    /* ---- Textarea ---- */
+    #prompt-input::placeholder {
+      color: rgba(255,255,255,0.18);
+    }
+    #prompt-input:focus {
+      outline: none;
+    }
+
+    /* ---- Log entry styling ---- */
+    .log-entry {
+      padding: 6px 10px;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+    .log-entry:hover {
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* ---- Header blur ---- */
+    .header-blur {
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      background: rgba(5,5,8,0.7);
+    }
+
+    /* ---- Section headings ---- */
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-heading::before {
+      content: '';
+      width: 3px;
+      height: 18px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #6366f1, #a78bfa);
+    }
+
+    /* ---- Footer gradient line ---- */
+    .footer-line {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(99,102,241,0.3), rgba(168,85,247,0.2), transparent);
+    }
+
+    /* ---- Video container ---- */
+    .video-container {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+    }
+    .video-container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      pointer-events: none;
+      z-index: 1;
+    }
   </style>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen relative">
+  <!-- Background layers -->
+  <div class="mesh-bg"></div>
+  <div class="noise-overlay"></div>
+
   <!-- Header -->
-  <header class="border-b border-white/5 py-4">
+  <header class="header-blur border-b border-white/[0.04] py-4 sticky top-0 z-50">
     <div class="max-w-5xl mx-auto px-6 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm">AC</div>
-        <h1 class="text-xl font-semibold text-white">AgentCut</h1>
-        <span class="text-xs text-white/30 ml-1">Multi-Agent Video Production</span>
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs tracking-tight shadow-lg shadow-brand-500/20">AC</div>
+        <h1 class="text-lg font-semibold text-white tracking-tight">AgentCut</h1>
+        <div class="hidden sm:flex items-center gap-2 ml-2">
+          <div class="w-px h-4 bg-white/10"></div>
+          <span class="text-xs text-white/30 font-medium tracking-wide uppercase">Multi-Agent Video Production</span>
+        </div>
       </div>
-      <a href="https://github.com/calderbuild" target="_blank" class="text-white/40 hover:text-white/70 text-sm">GitHub</a>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-1.5 text-xs text-emerald-400/70">
+          <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot"></div>
+          <span>System Online</span>
+        </div>
+        <a href="https://github.com/calderbuild" target="_blank" class="text-white/30 hover:text-white/60 transition-colors text-sm">GitHub</a>
+      </div>
     </div>
   </header>
 
-  <main class="max-w-5xl mx-auto px-6 py-10">
-    <!-- Input Section -->
-    <section id="input-section" class="mb-12">
-      <div class="text-center mb-8">
-        <h2 class="text-3xl font-bold text-white mb-3">Describe your video, let the AI crew handle the rest.</h2>
-        <p class="text-white/50 text-lg">6 specialized agents collaborate to produce your video from a single prompt.</p>
+  <main class="relative z-10 max-w-5xl mx-auto px-6 py-16">
+    <!-- Hero / Input Section -->
+    <section id="input-section" class="mb-16">
+      <div class="text-center mb-10">
+        <div class="fade-up inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.06] bg-white/[0.02] text-xs text-white/40 font-medium mb-6 tracking-wide">
+          <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          6 AI Agents. One Prompt. Full Video.
+        </div>
+        <h2 class="fade-up fade-up-d1 text-4xl sm:text-5xl font-bold text-white mb-4 tracking-tight leading-[1.15]">
+          Describe your vision.<br>
+          <span class="bg-gradient-to-r from-brand-400 via-purple-400 to-brand-400 bg-clip-text text-transparent">Watch it come to life.</span>
+        </h2>
+        <p class="fade-up fade-up-d2 text-white/40 text-lg max-w-xl mx-auto leading-relaxed">
+          From concept to final cut &mdash; six specialized AI agents collaborate
+          in a production pipeline to craft your video from a single prompt.
+        </p>
       </div>
 
-      <div class="glass rounded-2xl p-6 glow">
+      <div class="fade-up fade-up-d3 glass-elevated rounded-2xl p-6 max-w-3xl mx-auto shadow-2xl shadow-black/20" style="box-shadow: 0 0 80px rgba(99,102,241,0.06), 0 25px 50px rgba(0,0,0,0.25);">
         <textarea id="prompt-input" rows="3" placeholder="e.g. A 30-second cinematic product intro for an AI writing assistant, highlighting speed and quality..."
-          class="w-full bg-transparent text-white placeholder-white/20 text-lg resize-none focus:outline-none mb-4"></textarea>
+          class="w-full bg-transparent text-white/90 placeholder-white/15 text-base leading-relaxed resize-none focus:outline-none mb-5 font-light"></textarea>
 
-        <div class="flex items-center justify-between">
-          <div class="flex gap-4">
-            <label class="flex items-center gap-2 text-sm text-white/50">
-              <span>Duration</span>
-              <select id="duration-select" class="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div class="flex gap-5 items-center">
+            <label class="flex items-center gap-2 text-sm text-white/40">
+              <span class="text-xs uppercase tracking-wider font-medium">Duration</span>
+              <select id="duration-select" class="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5 text-white/80 text-sm focus:outline-none focus:border-brand-500/40 transition-colors cursor-pointer">
                 <option value="18-3">18s (3 shots)</option>
                 <option value="30-3" selected>30s (3 shots)</option>
                 <option value="30-5">30s (5 shots)</option>
               </select>
             </label>
-            <label class="flex items-center gap-2 text-sm text-white/50">
-              <input type="checkbox" id="music-toggle" checked class="rounded">
-              <span>Background Music</span>
+            <label class="flex items-center gap-2 text-sm text-white/40 cursor-pointer select-none">
+              <input type="checkbox" id="music-toggle" checked class="rounded accent-brand-500">
+              <span class="text-xs uppercase tracking-wider font-medium">Music</span>
             </label>
           </div>
 
           <button id="create-btn" onclick="startProduction()"
-            class="bg-brand-500 hover:bg-brand-600 text-white px-6 py-2.5 rounded-xl font-medium transition-colors flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="btn-primary bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-400 hover:to-brand-500 text-white px-7 py-2.5 rounded-xl font-medium text-sm flex items-center gap-2 tracking-wide">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             Start Production
@@ -80,92 +421,148 @@
       </div>
 
       <!-- Quick Templates -->
-      <div class="flex gap-3 mt-4 flex-wrap">
+      <div class="flex gap-2.5 mt-5 flex-wrap justify-center max-w-3xl mx-auto">
         <button onclick="setTemplate('A 30-second cinematic product intro for an AI writing assistant, highlighting speed and quality. Futuristic tech style.')"
-          class="text-xs px-3 py-1.5 rounded-full border border-white/10 text-white/40 hover:text-white/70 hover:border-white/20 transition-colors">
+          class="template-chip text-xs px-3.5 py-1.5 rounded-full border border-white/[0.06] text-white/30 hover:text-white/60 font-medium">
           Tech Product Intro
         </button>
         <button onclick="setTemplate('A 30-second travel vlog opening showing stunning aerial views of Santorini, Greece. Warm, inviting cinematic style.')"
-          class="text-xs px-3 py-1.5 rounded-full border border-white/10 text-white/40 hover:text-white/70 hover:border-white/20 transition-colors">
+          class="template-chip text-xs px-3.5 py-1.5 rounded-full border border-white/[0.06] text-white/30 hover:text-white/60 font-medium">
           Travel Vlog
         </button>
         <button onclick="setTemplate('A 15-second social media ad for a fitness app. Dynamic, energetic editing with bold text overlays.')"
-          class="text-xs px-3 py-1.5 rounded-full border border-white/10 text-white/40 hover:text-white/70 hover:border-white/20 transition-colors">
+          class="template-chip text-xs px-3.5 py-1.5 rounded-full border border-white/[0.06] text-white/30 hover:text-white/60 font-medium">
           Social Media Ad
         </button>
       </div>
     </section>
 
     <!-- Agent Pipeline Visualization -->
-    <section id="pipeline-section" class="hidden mb-12">
-      <h3 class="text-lg font-semibold text-white mb-6">Agent Pipeline</h3>
+    <section id="pipeline-section" class="hidden mb-16">
+      <h3 class="section-heading text-base font-semibold text-white mb-8 tracking-tight">Agent Pipeline</h3>
 
-      <div class="grid grid-cols-6 gap-3 mb-8">
-        <div id="stage-director" class="agent-card glass rounded-xl p-4 text-center opacity-30">
-          <div class="text-2xl mb-2">&#x1f3ac;</div>
-          <div class="text-sm font-medium text-white">Director</div>
-          <div class="text-xs text-white/40 mt-1">Planning</div>
-          <div class="stage-status text-xs mt-2 text-brand-500 hidden">Working...</div>
+      <div class="pipeline-grid grid grid-cols-6 gap-4 mb-8">
+        <!-- Connector lines between agents -->
+        <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" style="top: 0; left: 0;" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="connGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:rgba(99,102,241,0.08)" />
+              <stop offset="50%" style="stop-color:rgba(99,102,241,0.25)" />
+              <stop offset="100%" style="stop-color:rgba(99,102,241,0.08)" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <div id="stage-director" class="agent-card glass rounded-2xl p-4 pt-5 text-center opacity-30">
+          <div class="agent-icon icon-director">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M17 4v16M3 8h4M17 8h4M3 12h18M3 16h4M17 16h4M7 2l5 3 5-3"/></svg>
+          </div>
+          <div class="text-sm font-semibold text-white/90 mb-0.5">Director</div>
+          <div class="text-[11px] text-white/30 font-medium">Planning</div>
+          <div class="stage-status text-[11px] mt-2 text-purple-400 font-medium hidden">Working...</div>
         </div>
-        <div id="stage-script" class="agent-card glass rounded-xl p-4 text-center opacity-30">
-          <div class="text-2xl mb-2">&#x1f4dd;</div>
-          <div class="text-sm font-medium text-white">Script</div>
-          <div class="text-xs text-white/40 mt-1">Writing</div>
-          <div class="stage-status text-xs mt-2 text-brand-500 hidden">Working...</div>
+
+        <div id="stage-script" class="agent-card glass rounded-2xl p-4 pt-5 text-center opacity-30">
+          <div class="agent-icon icon-script">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="text-sm font-semibold text-white/90 mb-0.5">Script</div>
+          <div class="text-[11px] text-white/30 font-medium">Writing</div>
+          <div class="stage-status text-[11px] mt-2 text-blue-400 font-medium hidden">Working...</div>
         </div>
-        <div id="stage-visual" class="agent-card glass rounded-xl p-4 text-center opacity-30">
-          <div class="text-2xl mb-2">&#x1f3a5;</div>
-          <div class="text-sm font-medium text-white">Visual</div>
-          <div class="text-xs text-white/40 mt-1">Generating</div>
-          <div class="stage-status text-xs mt-2 text-brand-500 hidden">Working...</div>
+
+        <div id="stage-visual" class="agent-card glass rounded-2xl p-4 pt-5 text-center opacity-30">
+          <div class="agent-icon icon-visual">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+          </div>
+          <div class="text-sm font-semibold text-white/90 mb-0.5">Visual</div>
+          <div class="text-[11px] text-white/30 font-medium">Generating</div>
+          <div class="stage-status text-[11px] mt-2 text-green-400 font-medium hidden">Working...</div>
         </div>
-        <div id="stage-voice" class="agent-card glass rounded-xl p-4 text-center opacity-30">
-          <div class="text-2xl mb-2">&#x1f399;</div>
-          <div class="text-sm font-medium text-white">Voice</div>
-          <div class="text-xs text-white/40 mt-1">Recording</div>
-          <div class="stage-status text-xs mt-2 text-brand-500 hidden">Working...</div>
+
+        <div id="stage-voice" class="agent-card glass rounded-2xl p-4 pt-5 text-center opacity-30">
+          <div class="agent-icon icon-voice">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </div>
+          <div class="text-sm font-semibold text-white/90 mb-0.5">Voice</div>
+          <div class="text-[11px] text-white/30 font-medium">Recording</div>
+          <div class="stage-status text-[11px] mt-2 text-yellow-400 font-medium hidden">Working...</div>
         </div>
-        <div id="stage-music" class="agent-card glass rounded-xl p-4 text-center opacity-30">
-          <div class="text-2xl mb-2">&#x1f3b5;</div>
-          <div class="text-sm font-medium text-white">Music</div>
-          <div class="text-xs text-white/40 mt-1">Composing</div>
-          <div class="stage-status text-xs mt-2 text-brand-500 hidden">Working...</div>
+
+        <div id="stage-music" class="agent-card glass rounded-2xl p-4 pt-5 text-center opacity-30">
+          <div class="agent-icon icon-music">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <div class="text-sm font-semibold text-white/90 mb-0.5">Music</div>
+          <div class="text-[11px] text-white/30 font-medium">Composing</div>
+          <div class="stage-status text-[11px] mt-2 text-pink-400 font-medium hidden">Working...</div>
         </div>
-        <div id="stage-editor" class="agent-card glass rounded-xl p-4 text-center opacity-30">
-          <div class="text-2xl mb-2">&#x2702;</div>
-          <div class="text-sm font-medium text-white">Editor</div>
-          <div class="text-xs text-white/40 mt-1">Compositing</div>
-          <div class="stage-status text-xs mt-2 text-brand-500 hidden">Working...</div>
+
+        <div id="stage-editor" class="agent-card glass rounded-2xl p-4 pt-5 text-center opacity-30">
+          <div class="agent-icon icon-editor">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          </div>
+          <div class="text-sm font-semibold text-white/90 mb-0.5">Editor</div>
+          <div class="text-[11px] text-white/30 font-medium">Compositing</div>
+          <div class="stage-status text-[11px] mt-2 text-orange-400 font-medium hidden">Working...</div>
+        </div>
+      </div>
+
+      <!-- Connector arrows between cards (rendered below cards, visible via CSS) -->
+      <div class="flex justify-center gap-0 mb-8 -mt-5 px-2">
+        <div class="flex-1 flex items-center justify-center">
+          <div class="w-full h-px bg-gradient-to-r from-transparent via-purple-500/20 to-blue-500/20"></div>
+          <svg class="w-3 h-3 text-blue-500/30 shrink-0 -ml-0.5" viewBox="0 0 12 12" fill="currentColor"><path d="M4 2l6 4-6 4V2z"/></svg>
+        </div>
+        <div class="flex-1 flex items-center justify-center">
+          <div class="w-full h-px bg-gradient-to-r from-blue-500/20 via-blue-500/20 to-green-500/20"></div>
+          <svg class="w-3 h-3 text-green-500/30 shrink-0 -ml-0.5" viewBox="0 0 12 12" fill="currentColor"><path d="M4 2l6 4-6 4V2z"/></svg>
+        </div>
+        <div class="flex-1 flex items-center justify-center">
+          <div class="w-full h-px bg-gradient-to-r from-green-500/20 via-green-500/20 to-yellow-500/20"></div>
+          <svg class="w-3 h-3 text-yellow-500/30 shrink-0 -ml-0.5" viewBox="0 0 12 12" fill="currentColor"><path d="M4 2l6 4-6 4V2z"/></svg>
+        </div>
+        <div class="flex-1 flex items-center justify-center">
+          <div class="w-full h-px bg-gradient-to-r from-yellow-500/20 via-yellow-500/20 to-pink-500/20"></div>
+          <svg class="w-3 h-3 text-pink-500/30 shrink-0 -ml-0.5" viewBox="0 0 12 12" fill="currentColor"><path d="M4 2l6 4-6 4V2z"/></svg>
+        </div>
+        <div class="flex-1 flex items-center justify-center">
+          <div class="w-full h-px bg-gradient-to-r from-pink-500/20 via-pink-500/20 to-orange-500/20"></div>
+          <svg class="w-3 h-3 text-orange-500/30 shrink-0 -ml-0.5" viewBox="0 0 12 12" fill="currentColor"><path d="M4 2l6 4-6 4V2z"/></svg>
         </div>
       </div>
 
       <!-- Progress Bar -->
-      <div class="glass rounded-xl p-4 mb-6">
-        <div class="flex justify-between text-sm mb-2">
-          <span id="progress-label" class="text-white/60">Starting production...</span>
-          <span id="progress-pct" class="text-brand-500 font-medium">0%</span>
+      <div class="glass rounded-2xl p-5 mb-5">
+        <div class="flex justify-between text-sm mb-3">
+          <span id="progress-label" class="text-white/50 font-medium text-sm">Starting production...</span>
+          <span id="progress-pct" class="text-brand-400 font-semibold tabular-nums">0%</span>
         </div>
-        <div class="w-full bg-white/5 rounded-full h-2">
-          <div id="progress-bar" class="bg-brand-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+        <div class="w-full bg-white/[0.04] rounded-full h-2 overflow-hidden" style="box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);">
+          <div id="progress-bar" class="h-2 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
         </div>
       </div>
 
       <!-- Event Log -->
-      <div class="glass rounded-xl p-4">
-        <h4 class="text-sm font-medium text-white/60 mb-3">Production Log</h4>
-        <div id="event-log" class="space-y-2 max-h-48 overflow-y-auto text-sm">
+      <div class="glass rounded-2xl p-5">
+        <h4 class="text-xs font-semibold text-white/40 mb-3 uppercase tracking-wider">Production Log</h4>
+        <div id="event-log" class="space-y-1 max-h-56 overflow-y-auto text-sm font-mono">
         </div>
       </div>
     </section>
 
     <!-- Output Section -->
-    <section id="output-section" class="hidden mb-12">
-      <h3 class="text-lg font-semibold text-white mb-6">Your Video</h3>
-      <div class="glass rounded-2xl p-6 glow">
-        <video id="output-video" controls class="w-full rounded-xl mb-4 bg-black"></video>
+    <section id="output-section" class="hidden mb-16">
+      <h3 class="section-heading text-base font-semibold text-white mb-8 tracking-tight">Your Video</h3>
+      <div class="glass-elevated rounded-2xl p-6" style="box-shadow: 0 0 80px rgba(99,102,241,0.06), 0 25px 50px rgba(0,0,0,0.25);">
+        <div class="video-container mb-5">
+          <video id="output-video" controls class="w-full rounded-xl bg-black"></video>
+        </div>
         <div class="flex justify-between items-center">
-          <span class="text-sm text-white/40" id="video-info"></span>
-          <a id="download-btn" href="#" download class="bg-brand-500 hover:bg-brand-600 text-white px-5 py-2 rounded-xl font-medium text-sm transition-colors">
+          <span class="text-sm text-white/30 font-medium" id="video-info"></span>
+          <a id="download-btn" href="#" download
+            class="btn-primary bg-gradient-to-r from-brand-500 to-brand-600 text-white px-5 py-2 rounded-xl font-medium text-sm inline-flex items-center gap-2 tracking-wide">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
             Download MP4
           </a>
         </div>
@@ -174,10 +571,26 @@
   </main>
 
   <!-- Footer -->
-  <footer class="border-t border-white/5 py-6 mt-20">
-    <div class="max-w-5xl mx-auto px-6 flex justify-between items-center text-sm text-white/30">
-      <span>Built with Multi-Agent SOP Architecture</span>
-      <span>Powered by MiniMax Hailuo + Speech-2.6 + Music-2.0</span>
+  <footer class="relative z-10 mt-20 pb-8">
+    <div class="footer-line"></div>
+    <div class="max-w-5xl mx-auto px-6 pt-8">
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-6">
+        <div class="flex items-center gap-3">
+          <div class="w-6 h-6 rounded-md bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center text-white font-bold text-[9px] shadow-lg shadow-brand-500/10">AC</div>
+          <span class="text-sm text-white/25 font-medium">AgentCut</span>
+        </div>
+        <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-xs text-white/20">
+          <span class="flex items-center gap-1.5">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 2v2m8-2v2m-4-2v2M3 20h18M4 7h16a1 1 0 011 1v11H3V8a1 1 0 011-1z"/></svg>
+            Multi-Agent SOP Architecture
+          </span>
+          <span class="hidden sm:block text-white/10">|</span>
+          <span class="flex items-center gap-1.5">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Powered by MiniMax Hailuo + Speech-2.6 + Music-2.0
+          </span>
+        </div>
+      </div>
     </div>
   </footer>
 
@@ -315,10 +728,10 @@
       const color = stageColors[stage] || 'text-white/40';
       const time = new Date().toLocaleTimeString();
 
-      log.innerHTML += `<div class="slide-in flex gap-3">
-        <span class="text-white/20 shrink-0">${time}</span>
-        <span class="${color} font-medium shrink-0 w-16">${stage}</span>
-        <span class="text-white/60">${message}</span>
+      log.innerHTML += `<div class="slide-in log-entry flex gap-3">
+        <span class="text-white/15 shrink-0 text-xs tabular-nums">${time}</span>
+        <span class="${color} font-medium shrink-0 w-16 text-xs">${stage}</span>
+        <span class="text-white/50 text-xs">${message}</span>
       </div>`;
       log.scrollTop = log.scrollHeight;
     }
@@ -337,7 +750,7 @@
     function resetButton() {
       const btn = document.getElementById('create-btn');
       btn.disabled = false;
-      btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg> Start Production`;
     }
