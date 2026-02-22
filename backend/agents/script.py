@@ -1,7 +1,6 @@
 """Script Agent: refines the Director's outline into production-ready prompts."""
 import json
-import requests
-from backend.config import MINIMAX_BASE_URL, HEADERS
+from backend.config import MINIMAX_BASE_URL, api_session
 
 
 SYSTEM_PROMPT = """You are the Scriptwriter of an AI film production team. You take the Director's shot outline and refine each shot into production-ready specifications.
@@ -47,7 +46,7 @@ def run(outline: dict) -> dict:
         "max_tokens": 3000,
     }
 
-    resp = requests.post(url, headers=HEADERS, json=payload)
+    resp = api_session.post(url, json=payload)
     resp.raise_for_status()
     data = resp.json()
 

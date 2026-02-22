@@ -1,6 +1,6 @@
 """Agent orchestration pipeline: Director -> Script -> Visual+Voice+Music -> Editor."""
 import time
-import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -54,7 +54,7 @@ def run_pipeline(
     result["stages"]["script"] = production_script
     emit("script", "Production script finalized", 0.30)
 
-    # Stage 3: Visual + Voice + Music (parallel where possible)
+    # Stage 3: Visual + Voice + Music (truly parallel)
     emit("visual", "Visual team is generating video clips...", 0.35)
 
     def visual_progress(msg, current, total):
@@ -65,30 +65,44 @@ def run_pipeline(
         p = 0.60 + (current / total) * 0.10
         emit("voice", msg, p)
 
-    # Generate videos (parallel, takes longest)
-    video_results = visual.run(production_script, on_progress=visual_progress)
-    result["stages"]["visual"] = [
-        {"shot": r["shot_number"], "path": r["video_path"]} for r in video_results
-    ]
+    def run_visual():
+        return visual.run(production_script, on_progress=visual_progress)
 
-    # Generate voiceover
-    emit("voice", "Voice artist is recording narration...", 0.60)
-    voice_results = voice.run(production_script, on_progress=voice_progress)
-    result["stages"]["voice"] = [
-        {"shot": r["shot_number"], "path": r["audio_path"]} for r in voice_results
-    ]
+    def run_voice():
+        emit("voice", "Voice artist is recording narration...", 0.60)
+        return voice.run(production_script, on_progress=voice_progress)
 
-    # Generate music (optional)
-    bgm_path = None
-    if include_music:
+    def run_music():
+        if not include_music:
+            return None
         emit("music", "Composer is creating background music...", 0.72)
         try:
             mood = outline["shots"][0].get("mood", "inspiring")
-            bgm_path = music.run(outline["style"], mood, outline["total_duration"])
-            result["stages"]["music"] = {"path": bgm_path}
+            path = music.run(outline["style"], mood, outline["total_duration"])
             emit("music", "Background music composed", 0.78)
+            return path
         except Exception as e:
             emit("music", f"Music generation skipped: {e}", 0.78)
+            return None
+
+    # Run Visual, Voice, and Music concurrently
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        visual_future = executor.submit(run_visual)
+        voice_future = executor.submit(run_voice)
+        music_future = executor.submit(run_music)
+
+        video_results = visual_future.result()
+        voice_results = voice_future.result()
+        bgm_path = music_future.result()
+
+    result["stages"]["visual"] = [
+        {"shot": r["shot_number"], "path": r["video_path"]} for r in video_results
+    ]
+    result["stages"]["voice"] = [
+        {"shot": r["shot_number"], "path": r["audio_path"]} for r in voice_results
+    ]
+    if bgm_path:
+        result["stages"]["music"] = {"path": bgm_path}
 
     # Stage 4: Editor Agent
     emit("editor", "Editor is compositing the final video...", 0.80)

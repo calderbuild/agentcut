@@ -4,11 +4,13 @@ __pycache__/
 *.pyc
 .next/
 output/
+backend/output/
 *.egg-info/
 dist/
 build/
 .venv/
 venv/
 .playwright-mcp/
-*.png
+.DS_Store
 docs/plans/
+agentcut-*.png

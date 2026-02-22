@@ -1,8 +1,7 @@
 """Music Agent: generates background music via MiniMax Music API."""
 import os
 import json
-import requests
-from backend.config import MINIMAX_BASE_URL, HEADERS, OUTPUT_DIR
+from backend.config import MINIMAX_BASE_URL, OUTPUT_DIR, api_session
 
 
 def run(style: str, mood: str, total_duration: int, on_progress=None) -> str:
@@ -27,7 +26,7 @@ def run(style: str, mood: str, total_duration: int, on_progress=None) -> str:
         },
     }
 
-    resp = requests.post(url, headers=HEADERS, json=payload)
+    resp = api_session.post(url, json=payload)
     resp.raise_for_status()
     data = resp.json()
 

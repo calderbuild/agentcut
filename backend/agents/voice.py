@@ -1,8 +1,7 @@
 """Voice Agent: generates voiceover audio via MiniMax TTS API."""
 import os
 import json
-import requests
-from backend.config import MINIMAX_BASE_URL, HEADERS, OUTPUT_DIR
+from backend.config import MINIMAX_BASE_URL, OUTPUT_DIR, api_session
 
 
 def generate_tts(text: str, filename: str, voice_id: str = "English_expressive_narrator", mood: str = "neutral") -> str:
@@ -41,7 +40,7 @@ def generate_tts(text: str, filename: str, voice_id: str = "English_expressive_n
         },
     }
 
-    resp = requests.post(url, headers=HEADERS, json=payload)
+    resp = api_session.post(url, json=payload)
     resp.raise_for_status()
     data = resp.json()
 

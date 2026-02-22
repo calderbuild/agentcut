@@ -3,7 +3,7 @@ import os
 import time
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from backend.config import MINIMAX_BASE_URL, HEADERS, OUTPUT_DIR
+from backend.config import MINIMAX_BASE_URL, OUTPUT_DIR, api_session
 
 
 def create_video_task(prompt: str, duration: int = 6) -> str:
@@ -15,7 +15,7 @@ def create_video_task(prompt: str, duration: int = 6) -> str:
         "duration": min(duration, 6),  # Hailuo supports 6s or 10s
         "resolution": "1080P",
     }
-    resp = requests.post(url, headers=HEADERS, json=payload)
+    resp = api_session.post(url, json=payload)
     resp.raise_for_status()
     data = resp.json()
     base_resp = data.get("base_resp", {})
@@ -33,7 +33,7 @@ def poll_task(task_id: str, max_wait: int = 300) -> str:
     start = time.time()
     while time.time() - start < max_wait:
         time.sleep(10)
-        resp = requests.get(url, headers=HEADERS, params={"task_id": task_id})
+        resp = api_session.get(url, params={"task_id": task_id})
         data = resp.json()
         status = data.get("status", "Unknown")
         if status == "Success":
@@ -46,7 +46,7 @@ def poll_task(task_id: str, max_wait: int = 300) -> str:
 def download_file(file_id: str, filename: str) -> str:
     """Download video file by file_id, return local path."""
     url = f"{MINIMAX_BASE_URL}/files/retrieve"
-    resp = requests.get(url, headers=HEADERS, params={"file_id": file_id})
+    resp = api_session.get(url, params={"file_id": file_id})
     resp.raise_for_status()
     download_url = resp.json()["file"]["download_url"]
 

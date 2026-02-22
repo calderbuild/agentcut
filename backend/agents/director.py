@@ -1,7 +1,6 @@
 """Director Agent: understands user intent and creates a shot-by-shot outline."""
 import json
-import requests
-from backend.config import MINIMAX_API_KEY, MINIMAX_BASE_URL, HEADERS
+from backend.config import MINIMAX_BASE_URL, api_session
 
 
 SYSTEM_PROMPT = """You are the Director of an AI film production team. Your job is to take the user's creative idea and break it down into a detailed shot-by-shot outline for a short video.
@@ -54,7 +53,7 @@ def run(user_prompt: str, duration: int = 30, num_shots: int = 3) -> dict:
         "max_tokens": 2000,
     }
 
-    resp = requests.post(url, headers=HEADERS, json=payload)
+    resp = api_session.post(url, json=payload)
     resp.raise_for_status()
     data = resp.json()
 

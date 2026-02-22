@@ -11,7 +11,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from backend.pipeline import run_pipeline, PipelineEvent
-from backend.config import OUTPUT_DIR
+from backend.config import OUTPUT_DIR, validate_config
+
+validate_config()
 
 app = FastAPI(title="AgentCut", description="AI Director - Multi-Agent Video Production")
 

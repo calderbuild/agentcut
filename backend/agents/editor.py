@@ -132,16 +132,28 @@ def run(
             f"[narr][bgm]amix=inputs=2:duration=first[mixed]"
         )
 
-    # Burn in subtitles
-    subtitle_filter = f"subtitles={srt_path}:force_style='FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,BorderStyle=3,Outline=2,Shadow=0,MarginV=30'"
+    # Check if subtitles filter is available in ffmpeg
+    _has_subtitles_filter = "subtitles" in subprocess.run(
+        ["ffmpeg", "-filters"], capture_output=True, text=True,
+    ).stdout
+
+    if _has_subtitles_filter:
+        subtitle_filter = f"subtitles={srt_path}:force_style='FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,BorderStyle=3,Outline=2,Shadow=0,MarginV=30'"
+    else:
+        subtitle_filter = None
 
     if filter_parts:
-        full_filter = ";".join(filter_parts) + f";[0:v]{subtitle_filter}[outv]"
+        if subtitle_filter:
+            full_filter = ";".join(filter_parts) + f";[0:v]{subtitle_filter}[outv]"
+            v_map = "[outv]"
+        else:
+            full_filter = ";".join(filter_parts)
+            v_map = "0:v"
         cmd = [
             "ffmpeg", "-y",
             *inputs,
             "-filter_complex", full_filter,
-            "-map", "[outv]", "-map", audio_mix,
+            "-map", v_map, "-map", audio_mix,
             "-c:v", "libx264", "-preset", "fast",
             "-c:a", "aac", "-b:a", "192k",
             "-shortest",
@@ -151,13 +163,16 @@ def run(
         cmd = [
             "ffmpeg", "-y",
             *inputs,
-            "-vf", subtitle_filter,
+        ]
+        if subtitle_filter:
+            cmd.extend(["-vf", subtitle_filter])
+        cmd.extend([
             "-map", "0:v", "-map", "1:a",
             "-c:v", "libx264", "-preset", "fast",
             "-c:a", "aac", "-b:a", "192k",
             "-shortest",
             output_path,
-        ]
+        ])
 
     subprocess.run(cmd, check=True, capture_output=True)
     if on_progress:
