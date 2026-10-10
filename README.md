@@ -3,12 +3,20 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-green.svg)](https://python.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](Dockerfile)
+[![GitHub stars](https://img.shields.io/github/stars/calderbuild/agentcut?style=social)](https://github.com/calderbuild/agentcut)
 
-Turn a text prompt into a fully produced video. 6 AI agents collaborate through a structured pipeline -- from creative direction to final cut.
+Turn a text prompt into a finished video. Six AI agents (director, scriptwriter, visual, voice, music, editor) work through a fixed production pipeline and hand back one MP4 with narration, subtitles, and background music.
 
 <p align="center">
   <img src="docs/images/landing.png" width="80%" alt="AgentCut Landing Page" />
 </p>
+
+## Demo
+
+There is no hosted demo. AgentCut runs locally with your own MiniMax API key (see [Quick Start](#quick-start)).
+
+- Sample output: [`docs/demo/final.mp4`](docs/demo/final.mp4), a video produced end to end by the pipeline
+- Screenshots: the landing page above and the running pipeline below
 
 ## How It Works
 
@@ -48,10 +56,9 @@ Visual, Voice, and Music agents run **in parallel** after the Script is ready. T
 - **Parallel execution** -- Video, voice, and music generation run concurrently to minimize total wait time
 - **Real-time progress** -- SSE streaming shows every agent's status with completed/active/pending card states and elapsed timer
 - **One prompt, full video** -- From text description to a complete MP4 with narration, subtitles, and background music
-- **~$0.50 per video** -- Typical cost for a 3-shot video using MiniMax APIs
 - **Style presets** -- 5 one-click preset templates (Tech Product, Travel Vlog, Social Media Ad, Explainer, Brand Story)
 - **Script preview** -- Collapsible preview of the production script after the Script agent completes
-- **Production summary** -- Total time, shot count, agent count, and estimated cost displayed after video completion
+- **Production summary** -- Total time, shot count, agent count, and a rough API cost estimate displayed after video completion
 - **Job isolation** -- Each job gets a separate output directory, enabling safe concurrent production
 - **Auto-cleanup** -- Jobs older than 1 hour are automatically cleaned up (memory + disk)
 - **Graceful error handling** -- Per-stage error propagation with structured logging and frontend error display
@@ -133,13 +140,9 @@ curl -X POST http://localhost:8000/api/create \
 
 ## Cost
 
-Each video generation uses MiniMax API credits:
-- **LLM calls** (Director + Script): ~$0.01
-- **Video generation** (3 shots): ~$0.30-0.60
-- **Voice TTS** (3 shots): ~$0.01
-- **Music generation**: ~$0.05
+Every run spends MiniMax API credits on four kinds of calls: the LLM (Director + Script), one Hailuo video clip per shot, TTS narration, and one music track. Video clips are by far the largest share, so cost grows roughly linearly with the shot count.
 
-Estimated total per video: **~$0.40-0.70**
+The summary card in the UI shows a rough estimate of `0.1 + 3 x shots + 0.2 + 1` CNY (about 10 CNY for a 3-shot video). Treat it as a ballpark only and check [MiniMax pricing](https://www.minimax.io) for current rates. Turning off music skips the music call.
 
 ## Troubleshooting
 
@@ -172,6 +175,14 @@ backend/
 frontend/
   index.html      -- Single-page app with real-time pipeline UI
 ```
+
+## Contributing
+
+Bug reports and pull requests are welcome through [GitHub Issues](https://github.com/calderbuild/agentcut/issues). For larger changes, open an issue first so we can agree on the approach.
+
+## Author
+
+Built by [calderbuild](https://github.com/calderbuild), an independent developer. Contact: johnrobertdestiny@gmail.com
 
 ## License
 
